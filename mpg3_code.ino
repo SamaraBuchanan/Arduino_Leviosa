@@ -10,28 +10,30 @@
  * Distributed as-is; no warranty is given.
  ***************************************************************/
 #include "ICM_20948.h" // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
+#include <Stepper.h>
 
 //#define USE_SPI       // Uncomment this to use SPI
-
 #define SERIAL_PORT Serial
-
 #define SPI_PORT SPI // Your desired SPI port.       Used only when "USE_SPI" is defined
 #define CS_PIN 2     // Which pin you connect CS to. Used only when "USE_SPI" is defined
-
 #define WIRE_PORT Wire // Your desired Wire port.      Used when "USE_SPI" is not defined
 // The value of the last bit of the I2C address.
 // On the SparkFun 9DoF IMU breakout the default is 1, and when the ADR jumper is closed the value becomes 0
 #define AD0_VAL 1 
-
 #ifdef USE_SPI
 ICM_20948_SPI myICM; // If using SPI create an ICM_20948_SPI object
 #else
 ICM_20948_I2C myICM; // Otherwise create an ICM_20948_I2C object
 #endif
-
 ICM_20948_I2C *myICM_ptr; 
 
-int motorPin = A1;
+const int stepsPerRevolution = 513;
+// initialize the stepper library on pins:
+// Stepper myStepper(stepsPerRevolution, 8, 9, 10, 11); 
+Stepper myStepper(stepsPerRevolution, 4, 5, 6, 3);
+
+
+// int motorPin = A1; // old motor
 
 // Threshholds for different aspects of determining the movement of our wand
 float Z_ACCEL_HIGH =  1500;
@@ -51,10 +53,12 @@ float y_gyro_low_1 = 0;
 
 void setup()
 {
-  pinMode(motorPin, OUTPUT);
+  // pinMode(motorPin, OUTPUT);
   SERIAL_PORT.begin(9600);
   Serial.print("\tSDA = "); Serial.println(SDA);
   Serial.print("\tSCL = "); Serial.println(SCL);
+  // set the speed at 60 rpm:
+  myStepper.setSpeed(50);
   while (!SERIAL_PORT)
   {
   };
@@ -142,14 +146,17 @@ void loop()
     if(z_accel_high_1 != 0 && z_accel_high_2 != 0 && y_gyro_high_1 != 0 && y_gyro_high_2 != 0 && y_gyro_low_1 != 0)
     {
       SERIAL_PORT.println("\n\n\n\n WINGARDIUM LEVIOSA \n\n\n\n");
-      
-      // Can be set 0 - 255
-      // 130 seems to be lowest it can go and still turn on motor
-      analogWrite(motorPin, 130); 
+
+      for(int i = 0; i < 27; i++)
+      {
+        Serial.println(i);
+        myStepper.step(-stepsPerRevolution); // remove the negative to reverse?
+        delay(10);
+      }
       
       // Turn motor off after spool is fully rolled up
-      delay(2000);
-      analogWrite(motorPin, 0);
+      // delay(2000);
+      //analogWrite(motorPin, 0);
 
       // Reset all variables
       z_accel_high_1 = 0;
